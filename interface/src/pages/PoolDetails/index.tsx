@@ -251,9 +251,9 @@ export default function PoolDetails() {
     [onCurrencySelection]
   )
 
-  // Initialize currencies with pool tokens (only once per pool, like URL params in swap page)
+  // Initialize currencies with pool tokens when pool data is available
   useEffect(() => {
-    if (pool && pool.pair && currencyIdA && currencyIdB) {
+    if (pool && pool.pair) {
       dispatch(replaceSwapState({
         field: Field.INPUT,
         typedValue: '',
@@ -262,8 +262,7 @@ export default function PoolDetails() {
         recipient: null
       }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch])
+  }, [dispatch, pool])
 
   useEffect(() => {
     if (pool && pool.pair) {
@@ -328,6 +327,7 @@ export default function PoolDetails() {
                     onMax={handleMaxInput}
                     onCurrencySelect={handleInputSelect}
                     otherCurrency={currencies[Field.OUTPUT]}
+                    disableCurrencySelect
                     id="swap-currency-input"
                   />
                   <AutoColumn justify="space-between">
@@ -364,6 +364,7 @@ export default function PoolDetails() {
                     currency={currencies[Field.OUTPUT]}
                     onCurrencySelect={handleOutputSelect}
                     otherCurrency={currencies[Field.INPUT]}
+                    disableCurrencySelect
                     id="swap-currency-output"
                   />
 
