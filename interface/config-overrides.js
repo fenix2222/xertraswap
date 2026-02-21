@@ -1,0 +1,54 @@
+const webpack = require('webpack')
+const path = require('path')
+
+module.exports = function override(config) {
+  // 1. Polyfills for Node.js globals that Web3Auth dependencies need
+  config.plugins = (config.plugins || []).concat([
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+      Buffer: ['buffer', 'Buffer'],
+    }),
+  ])
+
+  // 2. Fix the node_modules babel-loader.
+  //    CRA 4's "dependencies" preset only does ESM→CJS — it does NOT transform
+  //    optional chaining (?.), nullish coalescing (??), class fields, etc.
+  //    Webpack 4's acorn parser can't handle these either.
+  //    Fix: inject the missing transform plugins into the node_modules loader.
+  var oneOfRules = config.module.rules.find(function (rule) { return rule.oneOf }).oneOf
+
+  var nodeModulesBabelRule = oneOfRules.find(function (rule) {
+    return rule.loader &&
+      rule.loader.includes('babel-loader') &&
+      rule.exclude
+  })
+
+  if (nodeModulesBabelRule) {
+    var existingOptions = nodeModulesBabelRule.options || {}
+    var extraPlugins = [
+      require.resolve('@babel/plugin-proposal-optional-chaining'),
+      require.resolve('@babel/plugin-proposal-nullish-coalescing-operator'),
+      [require.resolve('@babel/plugin-proposal-class-properties'), { loose: true }],
+      [require.resolve('@babel/plugin-proposal-private-methods'), { loose: true }],
+    ]
+
+    existingOptions.plugins = (existingOptions.plugins || []).concat(extraPlugins)
+    nodeModulesBabelRule.options = existingOptions
+  }
+
+  // 3. Aliases for node built-in polyfills
+  config.resolve = config.resolve || {}
+  config.resolve.alias = Object.assign({}, config.resolve.alias || {}, {
+    stream: require.resolve('stream-browserify'),
+    crypto: require.resolve('crypto-browserify'),
+    http: require.resolve('stream-http'),
+    https: require.resolve('https-browserify'),
+    os: require.resolve('os-browserify/browser'),
+    assert: require.resolve('assert'),
+  })
+
+  // 4. Shim react-dom/client for React 17 — Web3Auth v8 UI uses createRoot
+  config.resolve.alias['react-dom/client'] = path.resolve(__dirname, 'src/shims/react-dom-client.js')
+
+  return config
+}

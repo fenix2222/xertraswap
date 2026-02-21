@@ -11,7 +11,7 @@ import {
 } from '@web3-react/walletconnect-connector'
 import { connectorLocalStorageKey, ConnectorNames } from '@xertra/uikit'
 import useToast from 'hooks/useToast'
-import { connectorsByName } from 'connectors'
+import { connectorsByName, web3authConnector } from 'connectors'
 
 const useAuth = () => {
   const { activate, deactivate } = useWeb3React()
@@ -45,7 +45,17 @@ const useAuth = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return { login, logout: deactivate }
+  const logout = useCallback(() => {
+    // Web3Auth needs its own logout before web3-react deactivate
+    const connectorId = window.localStorage.getItem(connectorLocalStorageKey)
+    if (connectorId === ConnectorNames.Web3Auth) {
+      web3authConnector.deactivate()
+    }
+    deactivate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return { login, logout }
 }
 
 export default useAuth

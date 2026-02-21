@@ -4,6 +4,7 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 import { WalletConnectConnector } from '@web3-react/walletconnect-connector'
 import { BscConnector } from '@binance-chain/bsc-connector'
 import { NetworkConnector } from './NetworkConnector'
+import { Web3AuthConnector } from './Web3AuthConnector'
 import { getCurrentChainId, getCurrentRpcUrl, SUPPORTED_CHAIN_IDS, CHAIN_IDS } from '../config/chains'
 
 const NETWORK_URL = getCurrentRpcUrl()
@@ -32,8 +33,14 @@ export const walletconnect = new WalletConnectConnector({
   qrcode: true,
 })
 
+export const web3authConnector = new Web3AuthConnector({
+  chainId: NETWORK_CHAIN_ID,
+  rpcUrl: NETWORK_URL,
+})
+
 export const connectorsByName: { [connectorName in ConnectorNames]: any } = {
   [ConnectorNames.Injected]: injected,
   [ConnectorNames.WalletConnect]: walletconnect,
   [ConnectorNames.BSC]: bscConnector,
+  [ConnectorNames.Web3Auth]: web3authConnector,
 }

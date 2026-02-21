@@ -5,9 +5,15 @@ import TrustWallet from "./icons/TrustWallet";
 import WalletConnect from "./icons/WalletConnect";
 import BinanceChain from "./icons/BinanceChain";
 import SafePalWallet from "./icons/SafePalWallet";
+import Web3Auth from "./icons/Web3Auth";
 import { Config, ConnectorNames } from "./types";
 
 const connectors: Config[] = [
+  {
+    title: "Web3Auth",
+    icon: Web3Auth,
+    connectorId: ConnectorNames.Web3Auth,
+  },
   {
     title: "Metamask",
     icon: Metamask,
