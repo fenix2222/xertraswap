@@ -10,7 +10,7 @@ const WarningContainer = styled.div`
   max-width: 420px;
   width: 100%;
   padding: 1rem;
-  background: ${({ theme }) => `rgba(251, 191, 36, 0.05)`};
+  background: rgba(251, 191, 36, 0.05);
   border: 1px solid ${({ theme }) => theme.colors.warning};
   border-radius: 8px;
   overflow: auto;

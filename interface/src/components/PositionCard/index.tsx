@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { JSBI, Pair, Percent } from '@xertra/sdk'
 import { Button, Card as UIKitCard, CardBody, Text } from '@xertra/uikit'
-import { darken } from 'polished'
 import { ChevronDown, ChevronUp } from 'react-feather'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'

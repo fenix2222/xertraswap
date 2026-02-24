@@ -23,7 +23,7 @@ export const MenuItem = styled(RowBetween)`
   border-radius: 8px;
   transition: background-color 150ms ease-in-out;
   :hover {
-    background-color: ${({ theme, disabled }) => !disabled && 'rgba(255, 255, 255, 0.05)'};
+    background-color: ${({ disabled }) => !disabled && 'rgba(255, 255, 255, 0.05)'};
   }
   opacity: ${({ disabled, selected }) => (disabled || selected ? 0.5 : 1)};
 `

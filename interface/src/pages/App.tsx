@@ -111,7 +111,7 @@ export default function App() {
         }
       })
       .then(() => setTranslatedLanguage(selectedLanguage))
-      .catch((error) => {
+      .catch(() => {
         setTranslations(['error'])
         // Silently handle missing Crowdin credentials
         if (process.env.NODE_ENV === 'development') {
