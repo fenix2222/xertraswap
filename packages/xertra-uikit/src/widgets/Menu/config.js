@@ -14,21 +14,16 @@ export var status = {
 };
 export var links = [
     {
-        label: "Home",
-        icon: "HomeIcon",
-        href: "/",
-    },
-    {
         label: "Trade",
         icon: "TradeIcon",
         items: [
             {
                 label: "Exchange",
-                href: "https://exchange.pancakeswap.finance",
+                href: "/swap",
             },
             {
                 label: "Liquidity",
-                href: "https://exchange.pancakeswap.finance/#/pool",
+                href: "/pool",
             },
         ],
     },
@@ -41,7 +36,7 @@ export var links = [
     {
         label: "Pools",
         icon: "PoolIcon",
-        href: "/syrup",
+        href: "/pools",
     },
     {
         label: "Lottery",

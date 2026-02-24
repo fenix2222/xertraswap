@@ -5,12 +5,12 @@ import { StyledTag } from "./StyledTag";
 const Tag: React.FC<TagProps> = ({ startIcon, endIcon, children, ...props }) => (
   <StyledTag {...props}>
     {React.isValidElement(startIcon) &&
-      React.cloneElement(startIcon, {
+      React.cloneElement(startIcon as React.ReactElement<any>, {
         mr: "0.5em",
       })}
     {children}
     {React.isValidElement(endIcon) &&
-      React.cloneElement(endIcon, {
+      React.cloneElement(endIcon as React.ReactElement<any>, {
         ml: "0.5em",
       })}
   </StyledTag>

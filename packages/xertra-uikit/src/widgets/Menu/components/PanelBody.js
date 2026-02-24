@@ -16,20 +16,37 @@ var PanelBody = function (_a) {
     var location = useLocation();
     // Close the menu when a user clicks a link on mobile
     var handleClick = isMobile ? function () { return pushNav(false); } : undefined;
+    // Helper function to check if a menu item should be active
+    var isMenuItemActive = function (href, pathname) {
+        // Handle exact match first
+        if (href === pathname)
+            return true;
+        // Handle Exchange: both "/" and "/swap" should highlight /swap menu item
+        if (href === "/swap" && (pathname === "/" || pathname === "/swap"))
+            return true;
+        // Handle Liquidity: /pool and /pool/:A/:B should highlight /pool menu item
+        // BUT exclude /pools (that's a different feature)
+        if (href === "/pool" && pathname.startsWith("/pool") && pathname !== "/pools")
+            return true;
+        // Handle Pools: only exact /pools should highlight /pools menu item
+        if (href === "/pools" && pathname === "/pools")
+            return true;
+        return false;
+    };
     return (React.createElement(Container, null, links.map(function (entry) {
         var Icon = Icons[entry.icon];
         var iconElement = React.createElement(Icon, { width: "24px", mr: "8px" });
         var calloutClass = entry.calloutClass ? entry.calloutClass : undefined;
         if (entry.items) {
-            var itemsMatchIndex = entry.items.findIndex(function (item) { return item.href === location.pathname; });
+            var itemsMatchIndex = entry.items.findIndex(function (item) { return isMenuItemActive(item.href, location.pathname); });
             var initialOpenState = entry.initialOpenState === true ? entry.initialOpenState : itemsMatchIndex >= 0;
-            return (React.createElement(Accordion, { key: entry.label, isPushed: isPushed, pushNav: pushNav, icon: iconElement, label: entry.label, initialOpenState: initialOpenState, className: calloutClass, isActive: entry.items.some(function (item) { return item.href === location.pathname; }) }, isPushed &&
-                entry.items.map(function (item) { return (React.createElement(MenuEntry, { key: item.href, secondary: true, isActive: item.href === location.pathname, onClick: handleClick },
+            return (React.createElement(Accordion, { key: entry.label, isPushed: isPushed, pushNav: pushNav, icon: iconElement, label: entry.label, initialOpenState: initialOpenState, className: calloutClass, isActive: entry.items.some(function (item) { return isMenuItemActive(item.href, location.pathname); }) }, isPushed &&
+                entry.items.map(function (item) { return (React.createElement(MenuEntry, { key: item.href, secondary: true, isActive: isMenuItemActive(item.href, location.pathname), onClick: handleClick },
                     React.createElement(MenuLink, { href: item.href },
                         React.createElement(LinkLabel, { isPushed: isPushed }, item.label),
                         item.status && (React.createElement(LinkStatus, { color: item.status.color, fontSize: "14px" }, item.status.text))))); })));
         }
-        return (React.createElement(MenuEntry, { key: entry.label, isActive: entry.href === location.pathname, className: calloutClass },
+        return (React.createElement(MenuEntry, { key: entry.label, isActive: entry.href ? isMenuItemActive(entry.href, location.pathname) : false, className: calloutClass },
             React.createElement(MenuLink, { href: entry.href, onClick: handleClick },
                 iconElement,
                 React.createElement(LinkLabel, { isPushed: isPushed }, entry.label),
