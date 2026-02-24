@@ -5,9 +5,6 @@ node_modules/
 build/
 dist/
 
-# Exception: SDK has no source in repo, dist IS the package
-!packages/xertra-sdk/dist/
-
 # IDE
 .idea/
 .vscode/

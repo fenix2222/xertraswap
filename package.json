@@ -6,8 +6,12 @@
     "interface"
   ],
   "scripts": {
-    "dev": "yarn workspace @xertra/interface start",
-    "build": "yarn workspace @xertra/interface build",
+    "build:sdk": "yarn workspace @xertra/sdk build",
+    "build:uikit": "yarn workspace @xertra/uikit build",
+    "build:packages": "yarn build:sdk && yarn build:uikit",
+    "build:interface": "yarn workspace @xertra/interface build",
+    "dev": "yarn build:packages && yarn workspace @xertra/interface start",
+    "build": "yarn build:packages && yarn build:interface",
     "lint": "yarn workspace @xertra/interface lint",
     "test": "yarn workspace @xertra/interface test"
   },
