@@ -2,14 +2,21 @@ import { AbstractConnector } from '@web3-react/abstract-connector'
 import type { ConnectorUpdate } from '@web3-react/types'
 import { Web3Auth } from '@web3auth/modal'
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from '@web3auth/base'
-import { CommonPrivateKeyProvider } from '@web3auth/base-provider'
-import { Web3Provider } from '@ethersproject/providers'
+import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider'
 
 const WEB3AUTH_CLIENT_ID = 'BMdNL0PvfLFjZ7xMac75rae_xRHywJxQWDCa1WXmjodl8kZK7-g4lTiafTdqU88w0Ww2tpahqBmpJOrLq1So--8'
 
 interface Web3AuthConnectorOptions {
   chainId: number
   rpcUrl: string
+}
+
+interface Eip1193ProviderLike {
+  request?: (args: { method: string; params?: unknown[] | Record<string, unknown> }) => Promise<unknown>
+  chainId?: string | number
+  selectedAddress?: string
+  on?: (event: string, listener: (...args: unknown[]) => void) => void
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -45,7 +52,7 @@ export class Web3AuthConnector extends AbstractConnector {
       blockExplorerUrl: 'https://explorer.stratisevm.com',
     }
 
-    const privateKeyProvider = new CommonPrivateKeyProvider({
+    const privateKeyProvider = new EthereumPrivateKeyProvider({
       config: { chainConfig },
     })
 
@@ -64,58 +71,54 @@ export class Web3AuthConnector extends AbstractConnector {
   async activate(): Promise<ConnectorUpdate> {
     const web3auth = await this.ensureInitialized()
 
-    // If not already connected, show the Web3Auth modal
-    if (!web3auth.connected) {
-      await web3auth.connect()
+    const provider = await this.waitForProvider(web3auth)
+
+    const account = await this.waitForAccount(provider)
+    if (!account) {
+      throw new Error('Web3Auth account not available after connect')
     }
 
-    const provider = web3auth.provider
-    if (!provider) {
-      throw new Error('Web3Auth provider not available after connect')
-    }
-
-    const ethersProvider = new Web3Provider(provider as any)
-    const signer = ethersProvider.getSigner()
-    const account = await signer.getAddress()
-    const network = await ethersProvider.getNetwork()
+    const chainIdValue = (await this.request(provider, 'eth_chainId')) ?? provider.chainId
+    const chainId = this.parseChainId(chainIdValue)
 
     // Listen for provider events
-    provider.on('accountsChanged', this.handleAccountsChanged)
-    provider.on('chainChanged', this.handleChainChanged)
-    provider.on('disconnect', this.handleDisconnect)
+    if (provider.on) {
+      provider.on('accountsChanged', this.handleAccountsChanged as unknown as (...args: unknown[]) => void)
+      provider.on('chainChanged', this.handleChainChanged as unknown as (...args: unknown[]) => void)
+      provider.on('disconnect', this.handleDisconnect as unknown as (...args: unknown[]) => void)
+    }
 
     return {
-      provider: provider as any,
-      chainId: network.chainId,
+      provider,
+      chainId,
       account,
     }
   }
 
-  async getProvider(): Promise<any> {
+  async getProvider(): Promise<Eip1193ProviderLike | undefined> {
     if (!this.web3auth) return undefined
-    return this.web3auth.provider
+    return this.web3auth.provider as Eip1193ProviderLike
   }
 
   async getChainId(): Promise<number> {
-    if (!this.web3auth?.provider) return this.chainId
-    const ethersProvider = new Web3Provider(this.web3auth.provider as any)
-    const network = await ethersProvider.getNetwork()
-    return network.chainId
+    const provider = this.web3auth?.provider as Eip1193ProviderLike | null
+    if (!provider) return this.chainId
+    const chainIdValue = (await this.request(provider, 'eth_chainId')) ?? provider.chainId
+    return this.parseChainId(chainIdValue)
   }
 
   async getAccount(): Promise<string | null> {
-    if (!this.web3auth?.provider) return null
-    const ethersProvider = new Web3Provider(this.web3auth.provider as any)
-    const accounts = await ethersProvider.listAccounts()
-    return accounts[0] || null
+    const provider = this.web3auth?.provider as Eip1193ProviderLike | null
+    if (!provider) return null
+    return this.resolveAccount(provider, false)
   }
 
   deactivate(): void {
-    const provider = this.web3auth?.provider
+    const provider = this.web3auth?.provider as Eip1193ProviderLike | null
     if (provider) {
-      provider.removeListener('accountsChanged', this.handleAccountsChanged)
-      provider.removeListener('chainChanged', this.handleChainChanged)
-      provider.removeListener('disconnect', this.handleDisconnect)
+      provider.removeListener?.('accountsChanged', this.handleAccountsChanged as unknown as (...args: unknown[]) => void)
+      provider.removeListener?.('chainChanged', this.handleChainChanged as unknown as (...args: unknown[]) => void)
+      provider.removeListener?.('disconnect', this.handleDisconnect as unknown as (...args: unknown[]) => void)
     }
 
     if (this.web3auth?.connected) {
@@ -140,19 +143,127 @@ export class Web3AuthConnector extends AbstractConnector {
     }
   }
 
-  private handleAccountsChanged = (accounts: string[]): void => {
-    if (accounts.length === 0) {
+  private handleAccountsChanged = (accounts: unknown): void => {
+    if (!Array.isArray(accounts) || accounts.length === 0) {
       this.emitDeactivate()
     } else {
-      this.emitUpdate({ account: accounts[0] })
+      this.emitUpdate({ account: String(accounts[0]) })
     }
   }
 
-  private handleChainChanged = (chainId: string | number): void => {
-    this.emitUpdate({ chainId: Number(chainId) })
+  private handleChainChanged = (chainId: unknown): void => {
+    this.emitUpdate({ chainId: this.parseChainId(chainId) })
   }
 
   private handleDisconnect = (): void => {
     this.emitDeactivate()
+  }
+
+  private async request(provider: Eip1193ProviderLike, method: string): Promise<unknown> {
+    if (!provider.request) {
+      return null
+    }
+
+    try {
+      return await provider.request({ method })
+    } catch {
+      return null
+    }
+  }
+
+  private async resolveAccount(provider: Eip1193ProviderLike, requestAccess = true): Promise<string | null> {
+    const accounts = await this.request(provider, 'eth_accounts')
+    if (Array.isArray(accounts) && accounts[0]) {
+      return String(accounts[0])
+    }
+
+    if (provider.selectedAddress) {
+      return provider.selectedAddress
+    }
+
+    if (!requestAccess) {
+      return null
+    }
+
+    const coinbase = await this.request(provider, 'eth_coinbase')
+    if (typeof coinbase === 'string' && coinbase) {
+      return coinbase
+    }
+
+    const requestedAccounts = await this.request(provider, 'eth_requestAccounts')
+    if (Array.isArray(requestedAccounts) && requestedAccounts[0]) {
+      return String(requestedAccounts[0])
+    }
+
+    if (provider.selectedAddress) {
+      return provider.selectedAddress
+    }
+
+    return null
+  }
+
+  private async waitForAccount(provider: Eip1193ProviderLike): Promise<string | null> {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const account = await this.resolveAccount(provider, attempt === 0)
+      if (account) {
+        return account
+      }
+
+      // Give the OpenLogin provider a moment to finish propagating account state.
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250)
+      })
+    }
+
+    return null
+  }
+
+  private async waitForProvider(web3auth: Web3Auth): Promise<Eip1193ProviderLike> {
+    const currentProvider = web3auth.provider as Eip1193ProviderLike | null
+    if (currentProvider) {
+      return currentProvider
+    }
+
+    if (!web3auth.connected) {
+      const connectedProvider = (await web3auth.connect()) as Eip1193ProviderLike | null
+      if (connectedProvider) {
+        return connectedProvider
+      }
+    }
+
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const delayedProvider = web3auth.provider as Eip1193ProviderLike | null
+      if (delayedProvider) {
+        return delayedProvider
+      }
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250)
+      })
+    }
+
+    throw new Error('Web3Auth provider not available after connect')
+  }
+
+  private parseChainId(value: unknown): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+
+    if (typeof value === 'string') {
+      if (value.startsWith('0x')) {
+        const parsedHex = Number.parseInt(value, 16)
+        if (Number.isFinite(parsedHex)) {
+          return parsedHex
+        }
+      }
+
+      const parsedDecimal = Number(value)
+      if (Number.isFinite(parsedDecimal)) {
+        return parsedDecimal
+      }
+    }
+
+    return this.chainId
   }
 }

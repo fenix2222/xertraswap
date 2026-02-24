@@ -30,8 +30,11 @@ module.exports = function override(config) {
       require.resolve('@babel/plugin-proposal-nullish-coalescing-operator'),
       [require.resolve('@babel/plugin-proposal-class-properties'), { loose: true }],
       [require.resolve('@babel/plugin-proposal-private-methods'), { loose: true }],
+      [require.resolve('@babel/plugin-transform-private-property-in-object'), { loose: true }],
     ]
 
+    // Ensure .cjs in node_modules is transpiled by this dependencies babel-loader.
+    nodeModulesBabelRule.test = /\.(js|mjs|cjs)$/
     existingOptions.plugins = (existingOptions.plugins || []).concat(extraPlugins)
     nodeModulesBabelRule.options = existingOptions
   }
@@ -49,6 +52,20 @@ module.exports = function override(config) {
 
   // 4. Shim react-dom/client for React 17 — Web3Auth v8 UI uses createRoot
   config.resolve.alias['react-dom/client'] = path.resolve(__dirname, 'src/shims/react-dom-client.js')
+
+  // 5. Handle .mjs files from @metamask/* packages.
+  //    @web3auth/ethereum-provider pulls in @metamask/eth-sig-util → @metamask/utils
+  //    which ships .mjs files. Webpack 4 can't bridge ESM↔CJS named imports,
+  //    so we force CJS resolution and treat .mjs files as regular JS.
+  config.module.rules.push({
+    test: /\.mjs$/,
+    include: /node_modules/,
+    type: 'javascript/auto',
+  })
+
+  // Force @metamask packages to CJS entry points (avoid ESM .mjs resolution via module field)
+  config.resolve.alias['@metamask/superstruct'] = require.resolve('@metamask/superstruct')
+  config.resolve.alias['@metamask/utils'] = require.resolve('@metamask/utils')
 
   return config
 }
