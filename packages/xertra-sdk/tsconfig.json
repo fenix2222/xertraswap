@@ -14,7 +14,10 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
-    "declarationDir": "./dist"
+    "declarationDir": "./dist",
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "types": []
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

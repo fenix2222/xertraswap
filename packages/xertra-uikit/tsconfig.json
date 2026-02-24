@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
-    "jsx": "react"
+    "jsx": "react",
+    "types": ["react", "react-dom", "styled-components", "react-router-dom", "react-transition-group", "lodash", "styled-system", "jest", "testing-library__jest-dom"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "src/**/*.stories.tsx", "src/__tests__/**/*"]

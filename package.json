@@ -18,7 +18,8 @@
   "resolutions": {
     "@types/react": "17.0.0",
     "@types/react-dom": "17.0.0",
-    "@types/styled-components": "5.1.32"
+    "@types/styled-components": "5.1.32",
+    "@types/node": "18.19.68"
   },
   "packageManager": "yarn@1.22.22"
 }
