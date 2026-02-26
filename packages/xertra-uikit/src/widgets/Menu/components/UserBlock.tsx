@@ -31,7 +31,7 @@ const UserBlock: React.FC<Props> = ({ account, login, logout }) => {
             onPresentConnectModal();
           }}
         >
-          Connect
+          Connects
         </Button>
       )}
     </div>

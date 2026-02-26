@@ -8,9 +8,11 @@
   "scripts": {
     "build:sdk": "yarn workspace @xertra/sdk build",
     "build:uikit": "yarn workspace @xertra/uikit build",
+    "build:dev:uikit": "yarn workspace @xertra/uikit build:dev",
     "build:packages": "yarn build:sdk && yarn build:uikit",
+    "build:dev:packages": "yarn build:sdk && yarn build:dev:uikit", 
     "build:interface": "yarn workspace @xertra/interface build",
-    "dev": "yarn build:packages && yarn workspace @xertra/interface start",
+    "dev": "yarn build:dev:packages && yarn workspace @xertra/interface start",
     "build": "yarn build:packages && yarn build:interface",
     "lint": "yarn workspace @xertra/interface lint",
     "test": "yarn workspace @xertra/interface test"
@@ -19,7 +21,11 @@
     "@types/react": "17.0.0",
     "@types/react-dom": "17.0.0",
     "@types/styled-components": "5.1.32",
-    "@types/node": "18.19.68"
+    "@types/node": "18.19.68",
+    "eslint-plugin-react": "7.37.5"
   },
-  "packageManager": "yarn@1.22.22"
+  "packageManager": "yarn@1.22.22",
+  "dependencies": {
+    "cross-env": "^10.1.0"
+  }
 }

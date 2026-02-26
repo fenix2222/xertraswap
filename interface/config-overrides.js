@@ -1,9 +1,12 @@
 const webpack = require('webpack')
 const path = require('path')
 
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+
 module.exports = function override(config) {
   // 1. Polyfills for Node.js globals that Web3Auth dependencies need
   config.plugins = (config.plugins || []).concat([
+    new NodePolyfillPlugin(), // auto polyfills many node modules
     new webpack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],

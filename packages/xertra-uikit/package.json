@@ -2,18 +2,16 @@
   "name": "@xertra/uikit",
   "version": "1.0.0",
   "description": "UI components for Xertra DEX",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "repository": "https://github.com/pancakeswap/pancake-toolkit/tree/master/packages/pancake-uikit",
   "license": "MIT",
   "scripts": {
     "start": "yarn storybook",
     "clean": "rimraf dist",
     "build": "rimraf dist && rollup -c && node emit-declarations.js",
+    "build:dev": "tsc && cpx \"src/**/*.{svg,png,jpg}\" dist/",
+    "watch": "tsc --watch",
     "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
     "format:check": "prettier --check --loglevel error 'src/**/*.{js,jsx,ts,tsx}'",
     "format:write": "prettier --write 'src/**/*.{js,jsx,ts,tsx}'",
@@ -43,7 +41,7 @@
     "rollup": "^2.50.0",
     "styled-components": "^5.2.0",
     "tslib": "^2.2.0",
-    "typescript": "^4.3.2"
+    "typescript": "^5.9"
   },
   "peerDependencies": {
     "react": "^17.0.2",
