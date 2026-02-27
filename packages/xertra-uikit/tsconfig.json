@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES5",
+    "target": "ES6",
     "lib": ["dom", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -14,6 +14,11 @@
     "isolatedModules": true,
     "noEmit": false,
     "jsx": "react",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "rootDir": "src",
+    "outDir": "dist",
     "types": ["react", "react-dom", "styled-components", "react-router-dom", "react-transition-group", "lodash", "styled-system", "jest", "testing-library__jest-dom"]
   },
   "include": ["src"],

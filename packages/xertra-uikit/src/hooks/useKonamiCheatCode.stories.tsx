@@ -16,5 +16,5 @@ export const Default: React.FC = () => {
       <div>Enter: ArrowUp, ArrowUp, ArrowDown, ArrowDown, ArrowLeft, ArrowRight, ArrowLeft, ArrowRight</div>
       <pre>Code Entered: {JSON.stringify(correctCodeEntered)}</pre>
     </div>
-  );
+  );  
 };

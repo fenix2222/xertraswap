@@ -188,21 +188,21 @@ export function CurrencySearch({
         </AutoSizer>
       </div>
 
-      {null && (
+      {false && (
         <>
           <Separator />
           <Card>
             <RowBetween>
               {selectedListInfo.current ? (
                 <Row>
-                  {selectedListInfo.current.logoURI ? (
+                  {selectedListInfo?.current?.logoURI ? (
                     <ListLogo
                       style={{ marginRight: 12 }}
-                      logoURI={selectedListInfo.current.logoURI}
-                      alt={`${selectedListInfo.current.name} list logo`}
+                      logoURI={selectedListInfo?.current?.logoURI ?? ""}
+                      alt={`${selectedListInfo?.current?.name} list logo`}
                     />
                   ) : null}
-                  <Text id="currency-search-selected-list-name">{selectedListInfo.current.name}</Text>
+                  <Text id="currency-search-selected-list-name">{selectedListInfo?.current?.name}</Text>
                 </Row>
               ) : null}
               <LinkStyledButton
