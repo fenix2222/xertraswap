@@ -3,8 +3,9 @@ import type { ConnectorUpdate } from '@web3-react/types'
 import { Web3Auth } from '@web3auth/modal'
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from '@web3auth/base'
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider'
+import { getDefaultExternalAdapters } from '@web3auth/default-evm-adapter'
 
-const WEB3AUTH_CLIENT_ID = 'BMdNL0PvfLFjZ7xMac75rae_xRHywJxQWDCa1WXmjodl8kZK7-g4lTiafTdqU88w0Ww2tpahqBmpJOrLq1So--8'
+const DEFAULT_CLIENT_ID = 'BMdNL0PvfLFjZ7xMac75rae_xRHywJxQWDCa1WXmjodl8kZK7-g4lTiafTdqU88w0Ww2tpahqBmpJOrLq1So--8'
 
 interface Web3AuthConnectorOptions {
   chainId: number
@@ -17,6 +18,12 @@ interface Eip1193ProviderLike {
   selectedAddress?: string
   on?: (event: string, listener: (...args: unknown[]) => void) => void
   removeListener?: (event: string, listener: (...args: unknown[]) => void) => void
+}
+
+function resolveWeb3AuthNetwork(): (typeof WEB3AUTH_NETWORK)[keyof typeof WEB3AUTH_NETWORK] {
+  const env = process.env.REACT_APP_WEB3AUTH_NETWORK?.toLowerCase()
+  if (env === 'sapphire_devnet') return WEB3AUTH_NETWORK.SAPPHIRE_DEVNET
+  return WEB3AUTH_NETWORK.SAPPHIRE_MAINNET
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -49,19 +56,40 @@ export class Web3AuthConnector extends AbstractConnector {
       displayName: 'Stratis EVM',
       ticker: 'STRAX',
       tickerName: 'Stratis',
-      blockExplorerUrl: 'https://explorer.stratisevm.com',
+      decimals: 18,
+      blockExplorerUrl:
+        this.chainId === 105105 ? 'https://explorer.xertra.com' : 'https://auroria.explorer.xertra.com',
     }
 
     const privateKeyProvider = new EthereumPrivateKeyProvider({
       config: { chainConfig },
     })
 
+    const clientId = process.env.REACT_APP_WEB3AUTH_CLIENT_ID || DEFAULT_CLIENT_ID
+
     this.web3auth = new Web3Auth({
-      clientId: WEB3AUTH_CLIENT_ID,
-      web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+      clientId,
+      web3AuthNetwork: resolveWeb3AuthNetwork(),
       chainConfig,
       privateKeyProvider,
+      uiConfig: {
+        appName: 'Xertra Swap',
+        theme: { primary: '#38023b' },
+        mode: 'dark',
+        logoDark: 'https://stratispherestaging.blob.core.windows.net/images/Xertra_Logo_White_Transparent.png',
+        logoLight: 'https://stratispherestaging.blob.core.windows.net/images/Xertra_Logo_Transparent.png',
+        defaultLanguage: 'en',
+        loginGridCol: 3,
+        primaryButton: 'externalLogin',
+      },
     })
+
+    try {
+      const adapters = getDefaultExternalAdapters({ options: this.web3auth.options })
+      adapters.forEach((adapter) => this.web3auth!.configureAdapter(adapter))
+    } catch (err) {
+      console.warn('Failed to configure external wallet adapters:', err)
+    }
 
     await this.web3auth.initModal()
     this.initialized = true
@@ -81,7 +109,6 @@ export class Web3AuthConnector extends AbstractConnector {
     const chainIdValue = (await this.request(provider, 'eth_chainId')) ?? provider.chainId
     const chainId = this.parseChainId(chainIdValue)
 
-    // Listen for provider events
     if (provider.on) {
       provider.on('accountsChanged', this.handleAccountsChanged as unknown as (...args: unknown[]) => void)
       provider.on('chainChanged', this.handleChainChanged as unknown as (...args: unknown[]) => void)
@@ -110,7 +137,7 @@ export class Web3AuthConnector extends AbstractConnector {
   async getAccount(): Promise<string | null> {
     const provider = this.web3auth?.provider as Eip1193ProviderLike | null
     if (!provider) return null
-    return this.resolveAccount(provider, false)
+    return this.resolveAccount(provider)
   }
 
   deactivate(): void {
@@ -122,18 +149,12 @@ export class Web3AuthConnector extends AbstractConnector {
     }
 
     if (this.web3auth?.connected) {
-      // Fire-and-forget logout since deactivate is synchronous
       this.web3auth.logout().catch((err) => {
         console.error('Web3Auth logout error', err)
       })
     }
   }
 
-  /**
-   * Check if Web3Auth has a restorable session.
-   * Init must be called first -- if the user had a previous session,
-   * web3auth.connected will be true after initModal().
-   */
   async isSessionAvailable(): Promise<boolean> {
     try {
       const web3auth = await this.ensureInitialized()
@@ -171,28 +192,12 @@ export class Web3AuthConnector extends AbstractConnector {
     }
   }
 
-  private async resolveAccount(provider: Eip1193ProviderLike, requestAccess = true): Promise<string | null> {
+  private async resolveAccount(provider: Eip1193ProviderLike): Promise<string | null> {
+    // Web3Auth v9 provider only supports eth_accounts — eth_coinbase and
+    // eth_requestAccounts are not available on the private key provider.
     const accounts = await this.request(provider, 'eth_accounts')
     if (Array.isArray(accounts) && accounts[0]) {
       return String(accounts[0])
-    }
-
-    if (provider.selectedAddress) {
-      return provider.selectedAddress
-    }
-
-    if (!requestAccess) {
-      return null
-    }
-
-    const coinbase = await this.request(provider, 'eth_coinbase')
-    if (typeof coinbase === 'string' && coinbase) {
-      return coinbase
-    }
-
-    const requestedAccounts = await this.request(provider, 'eth_requestAccounts')
-    if (Array.isArray(requestedAccounts) && requestedAccounts[0]) {
-      return String(requestedAccounts[0])
     }
 
     if (provider.selectedAddress) {
@@ -204,12 +209,11 @@ export class Web3AuthConnector extends AbstractConnector {
 
   private async waitForAccount(provider: Eip1193ProviderLike): Promise<string | null> {
     for (let attempt = 0; attempt < 40; attempt += 1) {
-      const account = await this.resolveAccount(provider, attempt === 0)
+      const account = await this.resolveAccount(provider)
       if (account) {
         return account
       }
 
-      // Give the OpenLogin provider a moment to finish propagating account state.
       await new Promise((resolve) => {
         setTimeout(resolve, 250)
       })
@@ -219,16 +223,15 @@ export class Web3AuthConnector extends AbstractConnector {
   }
 
   private async waitForProvider(web3auth: Web3Auth): Promise<Eip1193ProviderLike> {
-    const currentProvider = web3auth.provider as Eip1193ProviderLike | null
-    if (currentProvider) {
-      return currentProvider
+    // In v9, web3auth.provider is always set after initModal() (from privateKeyProvider),
+    // so we must check web3auth.connected to know if there's an actual session.
+    if (web3auth.connected && web3auth.provider) {
+      return web3auth.provider as Eip1193ProviderLike
     }
 
-    if (!web3auth.connected) {
-      const connectedProvider = (await web3auth.connect()) as Eip1193ProviderLike | null
-      if (connectedProvider) {
-        return connectedProvider
-      }
+    const connectedProvider = (await web3auth.connect()) as Eip1193ProviderLike | null
+    if (connectedProvider) {
+      return connectedProvider
     }
 
     for (let attempt = 0; attempt < 40; attempt += 1) {
