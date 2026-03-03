@@ -14,8 +14,12 @@ sftp-config.json
 
 # misc
 .DS_Store
+# environment files with secrets (use .env.example as template)
+.env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
 .env.production.local
 
