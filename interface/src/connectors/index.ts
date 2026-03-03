@@ -33,10 +33,7 @@ export const walletconnect = new WalletConnectConnector({
   qrcode: true,
 })
 
-export const web3authConnector = new Web3AuthConnector({
-  chainId: NETWORK_CHAIN_ID,
-  rpcUrl: NETWORK_URL,
-})
+export const web3authConnector = new Web3AuthConnector(NETWORK_CHAIN_ID);
 
 export const connectorsByName: { [connectorName in ConnectorNames]: any } = {
   [ConnectorNames.Injected]: injected,

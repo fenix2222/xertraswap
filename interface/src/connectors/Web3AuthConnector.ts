@@ -3,13 +3,8 @@ import type { ConnectorUpdate } from '@web3-react/types'
 import { Web3Auth } from '@web3auth/modal'
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from '@web3auth/base'
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider'
-
-const WEB3AUTH_CLIENT_ID = 'BMdNL0PvfLFjZ7xMac75rae_xRHywJxQWDCa1WXmjodl8kZK7-g4lTiafTdqU88w0Ww2tpahqBmpJOrLq1So--8'
-
-interface Web3AuthConnectorOptions {
-  chainId: number
-  rpcUrl: string
-}
+import { getDefaultExternalAdapters } from '@web3auth/default-evm-adapter'
+import { BLOCK_EXPLORER_URLS, RPC_URLS } from '../config/chains'
 
 interface Eip1193ProviderLike {
   request?: (args: { method: string; params?: unknown[] | Record<string, unknown> }) => Promise<unknown>
@@ -17,6 +12,13 @@ interface Eip1193ProviderLike {
   selectedAddress?: string
   on?: (event: string, listener: (...args: unknown[]) => void) => void
   removeListener?: (event: string, listener: (...args: unknown[]) => void) => void
+}
+
+function resolveWeb3AuthNetwork(): (typeof WEB3AUTH_NETWORK)[keyof typeof WEB3AUTH_NETWORK] {
+  const env = process.env.REACT_APP_WEB3AUTH_NETWORK?.toLowerCase();
+  if (env === 'sapphire_devnet') 
+    return WEB3AUTH_NETWORK.SAPPHIRE_DEVNET;
+  return WEB3AUTH_NETWORK.SAPPHIRE_MAINNET;
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -27,15 +29,13 @@ export class Web3AuthConnector extends AbstractConnector {
 
   private readonly chainId: number
 
-  private readonly rpcUrl: string
-
-  constructor({ chainId, rpcUrl }: Web3AuthConnectorOptions) {
+  constructor(chainId: number) {
     super({ supportedChainIds: [chainId] })
-    this.chainId = chainId
-    this.rpcUrl = rpcUrl
+    this.chainId = chainId;
   }
 
   private async ensureInitialized(): Promise<Web3Auth> {
+
     if (this.web3auth && this.initialized) {
       return this.web3auth
     }
@@ -45,20 +45,24 @@ export class Web3AuthConnector extends AbstractConnector {
     const chainConfig = {
       chainNamespace: CHAIN_NAMESPACES.EIP155,
       chainId: chainIdHex,
-      rpcTarget: this.rpcUrl,
+      rpcTarget: RPC_URLS[this.chainId],
       displayName: 'Stratis EVM',
       ticker: 'STRAX',
       tickerName: 'Stratis',
-      blockExplorerUrl: 'https://explorer.stratisevm.com',
+      decimals: 18,
+      blockExplorerUrl: BLOCK_EXPLORER_URLS[this.chainId],
     }
 
     const privateKeyProvider = new EthereumPrivateKeyProvider({
       config: { chainConfig },
     })
 
+    const clientId = process.env.REACT_APP_WEB3AUTH_CLIENT_ID!;
+    const clientNetwork =  resolveWeb3AuthNetwork();
+
     this.web3auth = new Web3Auth({
-      clientId: WEB3AUTH_CLIENT_ID,
-      web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+      clientId,
+      web3AuthNetwork: clientNetwork,
       chainConfig,
       privateKeyProvider,
     })
@@ -69,10 +73,9 @@ export class Web3AuthConnector extends AbstractConnector {
   }
 
   async activate(): Promise<ConnectorUpdate> {
-    const web3auth = await this.ensureInitialized()
+    const web3auth = await this.ensureInitialized();
 
     const provider = await this.waitForProvider(web3auth)
-
     const account = await this.waitForAccount(provider)
     if (!account) {
       throw new Error('Web3Auth account not available after connect')
@@ -87,7 +90,6 @@ export class Web3AuthConnector extends AbstractConnector {
       provider.on('chainChanged', this.handleChainChanged as unknown as (...args: unknown[]) => void)
       provider.on('disconnect', this.handleDisconnect as unknown as (...args: unknown[]) => void)
     }
-
     return {
       provider,
       chainId,

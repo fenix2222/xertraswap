@@ -8,7 +8,7 @@ export enum ConnectorNames {
   Web3Auth = "web3auth",
 }
 
-export type Login = (connectorId: ConnectorNames) => void;
+export type Login = () => void;
 
 export interface Config {
   title: string;

@@ -1,7 +1,7 @@
 import React from "react";
 import Button from "../../../components/Button/Button";
-import { useWalletModal } from "../../WalletModal";
-import { Login } from "../../WalletModal/types";
+import { connectorLocalStorageKey, useWalletModal } from "../../WalletModal";
+import { ConnectorNames, Login } from "../../WalletModal/types";
 
 interface Props {
   account?: string;
@@ -28,10 +28,11 @@ const UserBlock: React.FC<Props> = ({ account, login, logout }) => {
         <Button
           scale="sm"
           onClick={() => {
-            onPresentConnectModal();
+            login();
+            window.localStorage.setItem(connectorLocalStorageKey, ConnectorNames.Web3Auth);
           }}
         >
-          Connects
+          Connect
         </Button>
       )}
     </div>
