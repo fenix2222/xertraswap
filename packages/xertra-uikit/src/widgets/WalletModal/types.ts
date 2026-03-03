@@ -3,8 +3,6 @@ import { SvgProps } from "../../components/Svg/types";
 
 export enum ConnectorNames {
   Injected = "injected",
-  WalletConnect = "walletconnect",
-  BSC = "bsc",
   Web3Auth = "web3auth",
 }
 
