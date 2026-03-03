@@ -59,7 +59,6 @@ export class Web3AuthConnector extends AbstractConnector {
 
     const clientId = process.env.REACT_APP_WEB3AUTH_CLIENT_ID!;
     const clientNetwork =  resolveWeb3AuthNetwork();
-    console.log(clientId, clientNetwork);  
 
     this.web3auth = new Web3Auth({
       clientId,
