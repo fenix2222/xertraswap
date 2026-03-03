@@ -60,15 +60,17 @@ module.exports = function override(config) {
   //    @web3auth/ethereum-provider pulls in @metamask/eth-sig-util → @metamask/utils
   //    which ships .mjs files. Webpack 4 can't bridge ESM↔CJS named imports,
   //    so we force CJS resolution and treat .mjs files as regular JS.
+  // Handle ESM packages in node_modules (.mjs files and "type":"module" .js files)
   config.module.rules.push({
-    test: /\.mjs$/,
+    test: /\.m?js$/,
     include: /node_modules/,
     type: 'javascript/auto',
+    resolve: { fullySpecified: false },
   })
 
-  // Force @metamask packages to CJS entry points (avoid ESM .mjs resolution via module field)
-  config.resolve.alias['@metamask/superstruct'] = require.resolve('@metamask/superstruct')
-  config.resolve.alias['@metamask/utils'] = require.resolve('@metamask/utils')
+  // Force @metamask packages to CJS entry points if present (avoid ESM .mjs resolution via module field)
+  try { config.resolve.alias['@metamask/superstruct'] = require.resolve('@metamask/superstruct') } catch (_) {}
+  try { config.resolve.alias['@metamask/utils'] = require.resolve('@metamask/utils') } catch (_) {}
 
   return config
 }
